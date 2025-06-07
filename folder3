@@ -1,0 +1,97 @@
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+import joblib
+import os
+
+print("Starting model training script...")
+
+# --- 1. Data Collection (Synthetic Data Generation) ---
+# We'll create a synthetic dataset for customer churn prediction.
+# Features: Age, Subscription_Length_Months, Monthly_Bill, Total_Usage_GB, Support_Calls
+# Target: Churn (1 if churned, 0 if not)
+
+np.random.seed(42) # for reproducibility
+
+num_samples = 1000
+
+data = {
+    'Age': np.random.randint(18, 70, num_samples),
+    'Subscription_Length_Months': np.random.randint(1, 60, num_samples),
+    'Monthly_Bill': np.random.uniform(20, 150, num_samples).round(2),
+    'Total_Usage_GB': np.random.uniform(50, 500, num_samples).round(2),
+    'Support_Calls': np.random.randint(0, 10, num_samples),
+    # Churn is influenced by higher monthly bills, lower usage, more support calls, and shorter subscription length
+    'Churn': np.where(
+        (np.random.rand(num_samples) < 0.2) + # baseline churn
+        (np.random.uniform(0, 1, num_samples) < (np.random.uniform(0.01, 0.05, num_samples) * (data['Monthly_Bill'] / 100))) +
+        (np.random.uniform(0, 1, num_samples) < (np.random.uniform(0.01, 0.05, num_samples) * (10 - data['Support_Calls']))) +
+        (np.random.uniform(0, 1, num_samples) < (np.random.uniform(0.01, 0.05, num_samples) * (60 - data['Subscription_Length_Months']))) +
+        (np.random.uniform(0, 1, num_samples) < (np.random.uniform(0.001, 0.005, num_samples) * (500 - data['Total_Usage_GB'])))
+        , 1, 0
+    )
+}
+
+df = pd.DataFrame(data)
+
+print(f"Synthetic dataset created with {df.shape[0]} samples and {df.shape[1]} features.")
+print("Dataset head:")
+print(df.head())
+print("\nChurn distribution:")
+print(df['Churn'].value_counts(normalize=True))
+
+# --- 2. Data Preprocessing ---
+# Separate features (X) and target (y)
+X = df.drop('Churn', axis=1)
+y = df['Churn']
+
+# Split data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+print(f"\nData split into training ({len(X_train)} samples) and testing ({len(X_test)} samples).")
+
+# Scale numerical features
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+print("Features scaled using StandardScaler.")
+
+# --- 3. Model Training ---
+# Initialize and train a RandomForestClassifier
+model = RandomForestClassifier(n_estimators=100, random_state=42, class_weight='balanced')
+model.fit(X_train_scaled, y_train)
+print("RandomForestClassifier trained.")
+
+# --- 4. Model Evaluation ---
+y_pred = model.predict(X_test_scaled)
+
+accuracy = accuracy_score(y_test, y_pred)
+precision = precision_score(y_test, y_pred)
+recall = recall_score(y_test, y_pred)
+f1 = f1_score(y_test, y_pred)
+
+print("\nModel Evaluation on Test Set:")
+print(f"Accuracy: {accuracy:.4f}")
+print(f"Precision: {precision:.4f}")
+print(f"Recall: {recall:.4f}")
+print(f"F1-Score: {f1:.4f}")
+
+# --- 5. Model Saving ---
+# Create a 'models' directory if it doesn't exist
+models_dir = 'models'
+os.makedirs(models_dir, exist_ok=True)
+
+# Save the trained model and the scaler
+model_path = os.path.join(models_dir, 'churn_model.joblib')
+scaler_path = os.path.join(models_dir, 'scaler.joblib')
+
+joblib.dump(model, model_path)
+joblib.dump(scaler, scaler_path)
+
+print(f"\nModel saved to: {model_path}")
+print(f"Scaler saved to: {scaler_path}")
+print("Model training script finished.")
+
+
