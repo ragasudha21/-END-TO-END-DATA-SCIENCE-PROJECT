@@ -48,4 +48,4 @@ requirements.txt
 
 Conclusion
 This task offered comprehensive exposure to the data science workflow. It helped strengthen our understanding of the real-world lifecycle of a data science project—from raw data to a deployed application. By integrating concepts like machine learning, data engineering, and web development, this task significantly enhanced both our technical and project management skills.
-
+output:![Image](https://github.com/user-attachments/assets/01949b65-2ea7-4596-bb57-69975674d8e1)
